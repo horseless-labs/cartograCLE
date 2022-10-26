@@ -2,7 +2,6 @@ library(osmdata)
 library(tidyverse)
 library(sf)
 
-#option 2 using coordinates (recommended)
 coords <- matrix(c(-81.7,-81.67,41.5,41.52),
                  byrow = TRUE,
                  nrow = 2,
