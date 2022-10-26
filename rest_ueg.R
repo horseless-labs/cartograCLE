@@ -1,5 +1,7 @@
 library(httr)
 library(jsonlite)
+library(leaflet)
+library(dplyr)
 
 # Get data from Cuyahoga County from the past two days.
 path <- "https://waterservices.usgs.gov/nwis/iv/?format=json&countyCd=39035&period=P2D&parameterCd=00060,00065&siteStatus=all"
@@ -14,11 +16,35 @@ sites <- cuyahoga$value$timeSeries
 # stage: 2.51 feet
 # flow: 7.99 cfs
 # lat: 41.4503 N
-# lon: 81.7215 W
+# long: 81.7215 W
+# path: 04208502
 # per its GLDW entry
 big_creek <- sites %>%
   filter(sourceInfo.siteName=="Big Creek at Cleveland OH")
+
+# Big Creek at Cleveland OH
+site_name <- big_creek$sourceInfo.siteName[1]
+path <- str_split(big_creek$name[1], ":")[[1]][2]
+
+lat <- big_creek$sourceInfo.geoLocation.geogLocation.latitude[1]
+lon <- big_creek$sourceInfo.geoLocation.geogLocation.longitude[1]
+
 flow_list <- big_creek[[1]][[1]][[1]][[1]]
 stage_list <- big_creek[[1]][[2]][[1]][[1]]
-lat <- big_creek$sourceInfo.geoLocation.geogLocation.latitude
-lon <- big_creek$sourceInfo.geoLocation.geogLocation.longitude
+most_recent_flow <- flow_list[nrow(flow_list),]
+most_recent_stage <- stage_list[nrow(stage_list),]
+
+timestamp <- most_recent_flow$dateTime
+
+site <- tibble(site_name = site_name,
+               path = path,
+               lat = lat,
+               lng = lon,
+               last_flow = most_recent_flow,
+               last_stage = most_recent_stage,
+               datetime = timestamp)
+
+stations <- leaflet() %>%
+  setView(lng=-81.681, lat=41.4626, zoom=13) %>%
+  addTiles() %>%
+  addCircleMarkers(data = site, lat = ~lat, lng = ~lng)
