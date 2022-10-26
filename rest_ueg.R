@@ -26,6 +26,7 @@ big_creek <- sites %>%
 site_name <- big_creek$sourceInfo.siteName[1]
 path <- str_split(big_creek$name[1], ":")[[1]][2]
 
+# Latitude and longitude
 lat <- big_creek$sourceInfo.geoLocation.geogLocation.latitude[1]
 lon <- big_creek$sourceInfo.geoLocation.geogLocation.longitude[1]
 
@@ -36,6 +37,7 @@ most_recent_stage <- stage_list[nrow(stage_list),]$value
 
 timestamp <- most_recent_flow$dateTime
 
+# Reduce to a tibble with only the most recent information
 site <- tibble(site_name = site_name,
                path = path,
                lat = lat,
@@ -44,6 +46,7 @@ site <- tibble(site_name = site_name,
                last_stage = most_recent_stage,
                datetime = timestamp)
 
+# Add popup info to site
 site <- site %>%
   mutate(popup = paste(site_name, "<br/>",
                        "Station: ", path, "<br/>",
@@ -51,7 +54,74 @@ site <- site %>%
                        "Flow: ", last_flow, "<br/>",
                        "Stage: ", last_stage))
 
+# Add to map
 stations <- leaflet() %>%
   setView(lng=-81.681, lat=41.4626, zoom=13) %>%
   addTiles() %>%
   addCircleMarkers(data = site, lat = ~lat, lng = ~lng, radius = 3, popup = ~popup)
+
+process_sites <- function(sites) {
+  all_sites <- tibble(site_name = character(),
+                     path = character(),
+                     lat = double(),
+                     lng = double(),
+                     last_flow = character(),
+                     last_stage = character(),
+                     datetime = character(),
+                     popup = character())
+  
+  for (i in 1:nrow(sites)) {
+    # Sorry.
+    # Feature of how the USGS structures its REST output; each value gets its
+    # own row.
+    site_name <- sites[i,]$sourceInfo.siteName
+    site <- sites %>% filter(sourceInfo.siteName==site_name)
+    path <- str_split(site$name[1], ":")[[1]][2]
+    
+    # Latitude and longitude
+    lat <- site$sourceInfo.geoLocation.geogLocation.latitude[1]
+    lon <- site$sourceInfo.geoLocation.geogLocation.longitude[1]
+    
+    # For demo purposes, we're only looking at the most recent flow and stage
+    flow_list <- site[[1]][[1]][[1]][[1]]
+    stage_list <- site[[1]][[2]][[1]][[1]]
+    most_recent_flow <- flow_list[nrow(flow_list),]
+    most_recent_stage <- stage_list[nrow(stage_list),]
+    
+    # Full date and time
+    timestamp <- most_recent_flow$dateTime
+    
+    most_recent_flow <- most_recent_flow$value
+    most_recent_stage <- most_recent_stage$value
+    
+    
+    site <- tibble(site_name = site_name,
+                   path = path,
+                   lat = lat,
+                   lng = lon,
+                   last_flow = most_recent_flow,
+                   last_stage = most_recent_stage,
+                   datetime = timestamp)
+    
+    # Add popup info to site
+    site <- site %>%
+      mutate(popup = paste(site_name, "<br/>",
+                           "Station: ", path, "<br/>",
+                           "Lat: ", lat, " ", "Long: ", lng, "ft<br/>"))
+                           #"Flow: ", last_flow, "ft^3/sec<br/>",
+                           #"Stage: ", last_stage))
+    all_sites <- all_sites %>% add_row(site)
+  }
+  
+  # Remove duplicate rows
+  # TODO: clean up duplicate rows upstream
+  all_sites <- all_sites %>%
+    group_by(site_name) %>%
+    filter(row_number(site_name) == 1)
+  
+  return (all_sites)
+}
+
+test <- sites[1:10,]
+all_sites <- process_sites(test)
+View(all_sites)
