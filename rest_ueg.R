@@ -77,7 +77,7 @@ process_sites <- function(sites) {
     site_name <- sites[i,]$sourceInfo.siteName
     site <- sites %>% filter(sourceInfo.siteName==site_name)
     path <- str_split(site$name[1], ":")[[1]][2]
-    
+
     # Latitude and longitude
     lat <- site$sourceInfo.geoLocation.geogLocation.latitude[1]
     lon <- site$sourceInfo.geoLocation.geogLocation.longitude[1]
@@ -107,9 +107,9 @@ process_sites <- function(sites) {
     site <- site %>%
       mutate(popup = paste(site_name, "<br/>",
                            "Station: ", path, "<br/>",
-                           "Lat: ", lat, " ", "Long: ", lng, "ft<br/>"))
-                           #"Flow: ", last_flow, "ft^3/sec<br/>",
-                           #"Stage: ", last_stage))
+                           "Lat: ", lat, " ", "Long: ", lng, "ft<br/>",
+                           "Flow: ", last_flow, "ft^3/sec<br/>",
+                           "Stage: ", last_stage, "ft"))
     all_sites <- all_sites %>% add_row(site)
   }
   
@@ -122,6 +122,14 @@ process_sites <- function(sites) {
   return (all_sites)
 }
 
-test <- sites[1:10,]
+test <- sites %>%
+  group_by(sourceInfo.siteName) %>%
+  filter(n() == 2)
+  
 all_sites <- process_sites(test)
 View(all_sites)
+
+stations <- leaflet() %>%
+  setView(lng=-81.681, lat=41.4626, zoom=13) %>%
+  addTiles() %>%
+  addCircleMarkers(data = all_sites, lat = ~lat, lng = ~lng, radius = 18, popup = ~popup)
