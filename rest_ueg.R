@@ -31,8 +31,8 @@ lon <- big_creek$sourceInfo.geoLocation.geogLocation.longitude[1]
 
 flow_list <- big_creek[[1]][[1]][[1]][[1]]
 stage_list <- big_creek[[1]][[2]][[1]][[1]]
-most_recent_flow <- flow_list[nrow(flow_list),]
-most_recent_stage <- stage_list[nrow(stage_list),]
+most_recent_flow <- flow_list[nrow(flow_list),]$value
+most_recent_stage <- stage_list[nrow(stage_list),]$value
 
 timestamp <- most_recent_flow$dateTime
 
@@ -44,7 +44,14 @@ site <- tibble(site_name = site_name,
                last_stage = most_recent_stage,
                datetime = timestamp)
 
+site <- site %>%
+  mutate(popup = paste(site_name, "<br/>",
+                       "Station: ", path, "<br/>",
+                       "Lat: ", lat, " ", "Long: ", lng, "<br/>",
+                       "Flow: ", last_flow, "<br/>",
+                       "Stage: ", last_stage))
+
 stations <- leaflet() %>%
   setView(lng=-81.681, lat=41.4626, zoom=13) %>%
   addTiles() %>%
-  addCircleMarkers(data = site, lat = ~lat, lng = ~lng)
+  addCircleMarkers(data = site, lat = ~lat, lng = ~lng, radius = 3, popup = ~popup)
