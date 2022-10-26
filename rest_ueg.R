@@ -59,12 +59,12 @@ process_sites <- function(sites) {
     
     # Add popup info to site
     site <- site %>%
-      mutate(popup = paste(site_name, "<br/>",
+      mutate(popup = paste("<h2>",site_name, "<br/>",
                            datetime,"<br/>",
                            "Station: ", path, "<br/>",
                            "Lat: ", lat, " ", "Long: ", lng, "ft<br/>",
                            "Flow: ", last_flow, "ft^3/sec<br/>",
-                           "Stage: ", last_stage, "ft"))
+                           "Stage: ", last_stage, "ft</h2>"))
     all_sites <- all_sites %>% add_row(site)
   }
   
@@ -89,4 +89,4 @@ stations <- leaflet() %>%
   addTiles() %>%
   addCircleMarkers(data = all_sites, lat = ~lat, lng = ~lng, radius = 18, popup = ~popup)
 
-saveWidget(stations, file="stations.html")
+saveWidget(stations, file="index.html")
